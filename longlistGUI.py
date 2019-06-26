@@ -1,7 +1,9 @@
 #!./env/Scripts/python
 import tkinter as tk
 from tkinter import filedialog
-import llx2w as x2w
+# import llx2w as x2w
+import longlistservice as x2w
+
 import os
 
 class Application(tk.Tk):
@@ -94,10 +96,12 @@ class Generate(tk.Frame):
 
     def genLL(self):
         path = self.master.uploader.topfile
+        print('yo', path)
         if path:
             res = x2w.main(path)
             # self.message = tk.Message(Alert(master = self), text = "Great Job")
-            res = "/".join(self.master.uploader.PWD.split("/")[:-1])+"/"+res
+            # res = "/".join(self.master.uploader.PWD.split("/")[:-1])+"/"+res
+            # print('yo', res)
             self.message = Alert(master = self, path=res, result=True)
             # self.message.pack(side="left")
 

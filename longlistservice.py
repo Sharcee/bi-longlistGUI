@@ -11,55 +11,10 @@ import os
 
 from openpyxl import load_workbook
 
-def addCategoryTitle(doc, letter, name):
-    text = "{}. {}".format(letter, name)
-    size10buffer(doc)
-    # Define our Category Title Formatting
-    category_section_title = doc.add_paragraph()
-    category_section_title.paragraph_format.space_before = None
-    category_section_title.paragraph_format.space_after = Pt(8)
-    # Title
-    category = category_section_title.add_run(text)
-    category.font.name = 'Calibri'
-    category.font.size = Pt(14)
-    category.underline = True
-    category.bold = True
-
-def addSubTitle(doc, name):
-    size10buffer(doc)
-    # Define our Category Title Formatting
-    category_section_title = doc.add_paragraph()
-    category_section_title.paragraph_format.space_before = None
-    category_section_title.paragraph_format.space_after = Pt(8)
-    # Title
-    category = category_section_title.add_run(name)
-    category.font.name = 'Calibri'
-    category.font.size = Pt(14)
-    category.underline = True
-    category.bold = True
-
-def size10buffer(doc):
-    title_space = doc.add_paragraph()
-    title_space_run = title_space.add_run(" ")
-    title_space_run.font.name = 'Calibri'
-    title_space_run.font.size = Pt(10)
-    title_space.paragraph_format.space_after = Pt(6)
-
-def convertDate(mmddyy):
-    dateobj = datetime.strptime(mmddyy, '%m.%d.%y')
-    return dateobj.strftime('%B %d, %Y').replace(" 0", " ")
-
-def buildReplaceDict(company, project, date):
-    temp = 'Project ' + project + ' Longlist'
-    return {
-        'Project Project Name Longlist' : temp,
-        'Company' : company,
-        'Date' : date
-    }
-
-
-#@TODO: Refactor this Code you found on StackOverflow
-def docx_replace_header(doc, data, section):
+###################
+#  Main Routines  #
+###################
+def fillHeaderInfo(doc, data, section):
     _section = section
     header = _section.header
     headers = header.paragraphs
@@ -144,9 +99,53 @@ def docx_replace_header(doc, data, section):
                             inline[index].text = text
                 # print(p.text)
 
+def addFormalTitle(doc, company, project, date):
+    title = doc.paragraphs[0]
+    title.clear()
+
+    # Set Paragraph Text
+    title_run = title.add_run(company.upper() + " PROJECT " + '"' + project.upper() + '"\nNAME CANDIDATE LONGLIST - ' + date.upper())
+    # Set Font, Size
+    title_run.font.name = 'Calibri'
+    title_run.font.size = Pt(22)
+    # Single Spaced; Pt(6) font spacing after
+    title.paragraph_format.line_spacing = 1
+    title.paragraph_format.space_after = Pt(6)
+
+def addCategory(doc, data):
+    addSizeTenBuffer(doc)
+    p = initParagraph(doc)
+    pr = p.add_run(data)
+    pr.font.name = 'Calibri'
+    pr.font.size = Pt(14)
+    pr.underline = True
+    pr.bold = True
+
+def addBulletName(doc, name, rationale, symbol="", team=False):
+    TAB = '\t'
+    bullet = doc.add_paragraph(style='mynew')
+    bullrun = bullet.add_run(name)
+    subrun = bullet.add_run(symbol + TAB)
+
+    if team:
+        bullrun.bold = True
+        subrun.bold = True
+    
+    bullrun.font.size = Pt(14)
+    bullrun.font.name = 'Calibri'
+    subrun.font.size = Pt(8)
+
+    ratrun = bullet.add_run(rationale)
+    ratrun.font.size = Pt(10)
+    ratrun.font.name = 'Calibri'
 
 
+# def addScreenerInfo(doc, data, section):
+#     pass
 
+###################
+# Routine Helpers #
+###################
 def resource_path(relative_path):
     """ Get absolute path to resource, works for dev and for PyInstaller """
     try:
@@ -157,118 +156,106 @@ def resource_path(relative_path):
 
     return os.path.join(base_path, relative_path)
 
-def main(fileIN):
-    """
-    Input Template Example: company_PROJECT_N 4 LL for upload_MM.DD.YY.xlsx
-    print(fileIN.split('_'))
-    ['company', 'PROJECT', 'N4LL for upload', 'MM.DD.YY.xlsx']
+def convertDate(mmddyy):
+    dateobj = datetime.strptime(mmddyy, '%m.%d.%y')
+    return dateobj.strftime('%B %d, %Y').replace(" 0", " ")
 
-    Header Section
-    """
-    relative = fileIN.split("/")[-1]
-    # Store Header Names
-    company, project, _, date = relative.split("_")
+def buildClientDict(company, project, date):
+    tmp = 'Project ' + project + ' Longlist'
+    return {
+        'Project Project Name Longlist' : tmp,
+        'Company' : company,
+        'Date' : date
+    }
 
-    # Clean Up Date: 05.05.95.docx -> 05.05.95
-    date = '.'.join(date.split(".")[:-1])
-    date1 = convertDate(date)
-    # print(company, project, date)
+def initParagraph(doc):
+    tmp = doc.add_paragraph()
+    tmp.paragraph_format.space_before = None
+    tmp.paragraph_format.space_after = Pt(8)
 
-    # Opening our document
+    return tmp
+
+def addSizeTenBuffer(doc):
+    x = doc.add_paragraph()
+    x_run = x.add_run(" ")
+    x_run.font.name = 'Calibri'
+    x_run.font.size = Pt(10)
+    x.paragraph_format.space_after = Pt(6)
+    pass
+
+###################
+#      Main       #
+###################
+def main(filePath):
+    # Working with input file name
+    folder = filePath.split("/")
+    myFile = folder[-1]
+    folder = "/".join(folder[:-1])+"/"
+
+    company, project, _, date = myFile.split("_")
+    date = '.'.join(date.split('.')[:-1])
+
+    # Create document object from template
+    print(resource_path('ll_template'))
     doc = Document(resource_path('ll_template.docx'))
 
-    # Edit our Headers
+    # Replace our Header
     section = doc.sections[0]
-    docx_replace_header(doc, buildReplaceDict(company, project.upper(), date1), section)
+    fillHeaderInfo(doc, buildClientDict(company, project.upper(), convertDate(date)), section)
 
-    """
-    LongList Title Section
-    """
-    # Select First Paragraph from Template
-    title = doc.paragraphs[0]
-    title.clear()
+    # Place our Title
+    addFormalTitle(doc, company, project, convertDate(date))
 
-    # Set Paragraph Text
-    title_run = title.add_run(company.upper() + " PROJECT " + '"' + project.upper() + '"\nNAME CANDIDATE LONGLIST - ' + date1.upper())
-    # Set Font, Size
-    title_run.font.name = 'Calibri'
-    title_run.font.size = Pt(22)
-    # Single Spaced; Pt(6) font spacing after
-    title.paragraph_format.line_spacing = 1
-    title.paragraph_format.space_after = Pt(6)
-
-
-    """
-    Scrape Excel Sheet for Data
-    """
     # Load Workbook
-    wb = load_workbook(filename = fileIN)
+    wb = load_workbook(filename = filePath)
     ws = wb.active
 
     main_category = None
     main_category_name = None
     sub_category = None
+    containsSubcategories = True
 
-    for row in ws.iter_rows(min_row = 2):
+    for row in ws.iter_rows(min_row=2):
         seq, category, name, rationale = row
-
+        
         if str(seq.value).isalpha():
             main_category = seq.value
             main_category_name = category.value
             sub_category = None
 
-            addCategoryTitle(doc, main_category, main_category_name)
+            addCategory(doc, main_category+'. '+main_category_name)
             continue
         
-        if sub_category is None or category.value != sub_category:
-            sub_category = category.value
-            addSubTitle(doc, sub_category)
-        
-        bullet = doc.add_paragraph(style='mynew')
-        TABS = "\t"
+        if not category.value:
+            containsSubcategories = False
+
+        if(containsSubcategories):
+            if sub_category is None or category.value != sub_category:
+                sub_category = category.value
+                addCategory(doc, sub_category)
+
         sub = ""
-        BOLD_INDICATOR = '$'
-
-        if name.font.bold:
-            name = BOLD_INDICATOR + name.value.strip()
-        else:
-            name = name.value            
-
-        if "(" in name:
-            name, sub = name.split("(", 1)
+        if "(" in name.value:
+            name.value, sub = name.value.split("(", 1)
             sub = "(" + sub
 
-        if BOLD_INDICATOR in name:
-            namerun = bullet.add_run(name[1:])  # UGLY -- make pythonic
-            subrun = bullet.add_run(sub + TABS)
-            namerun.bold = True # Bold our Run
-            subrun.bold = True
-        else:
-            namerun = bullet.add_run(name)
-            subrun = bullet.add_run(sub + TABS)
-        
-        subrun.font.size = Pt(8)
-        namerun.font.size = Pt(14)
-        namerun.font.name = 'Calibri'
-
-        # Apply Font
-        rational = bullet.add_run(rationale.value)
-        rational.font.size = Pt(10)
-        rational.font.name = 'Calibri'
-
+        addBulletName(doc, name.value, rationale.value, sub, name.font.bold)
+    
     for _par in doc.paragraphs:
         for q in _par.runs:
             if "'" in q.text:
                 q.text = q.text.replace("'", "’")
-            # if '"' in q.text:
-            #     q.text = q.text.replace('"', '“')
-
-
+    
     # Save into our word doc
-    our_file = "{} {} Longlist {}.docx".format(company,project.upper(), date)
+    filePath = "/".join(filePath.split("/")[:-1])+"/"
+    # print(filePath)
+    our_file = filePath + "{} {} Longlist {}.docx".format(company,project.upper(), date)
+    
     doc.save(our_file)
+    # print(our_file)
 
     return our_file
 
 # if __name__ == "__main__":
-#     main(sys.argv[1])
+#     pass
+
