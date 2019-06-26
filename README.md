@@ -3,7 +3,7 @@
 [done]: assets/done.PNG
 
 # Longlist Generator
-Toolbar functionality has yet to be implemented but placeholder optiones have been placed.
+Toolbar functionality has yet to be implemented but placeholder options have been placed.
 
 ### Main Menu:
 
